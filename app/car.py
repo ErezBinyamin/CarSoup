@@ -27,15 +27,6 @@ class CarParser():
         self.make  = make
         self.model = model
 
-    def brew_soup(self):
-        head = requests.head(self.URL)
-        if head.ok:
-            get = requests.get(self.URL) 
-            soup = BeautifulSoup(get.content, "html.parser")
-        else:
-            logger.error("HTTP %d: %s" % (head.status_code, URL))
-        return soup
-
     def scrape(self):
         """
         Based on supplied year/model/make
@@ -46,25 +37,25 @@ class CarParser():
         result = None
         if self.model and self.year:
             self.URL += '/{year}/{make}/{model}'.format(year=self.year, make=self.make, model=self.model)
-            result = self.scrape_full()
+            result = self._scrape_full()
         elif self.model:
             self.URL += '/{make}/{model}'.format(make=self.make, model=self.model)
-            result = self.scrape_year()
+            result = self._scrape_year()
         elif self.year:
             self.URL += '/{year}/{make}'.format(year=self.year, make=self.make)
-            result = self.scrape_model()
+            result = self._scrape_model()
         else:
             self.URL += '/{make}'.format(make=self.make)
-            result = self.scrape_model_year()
+            result = self._scrape_model_year()
         return result
 
-    def scrape_year(self):
+    def _scrape_year(self):
         """
         When make and model are given but not year.
         Result will be a list of valid years
         """
         result = None
-        soup = self.brew_soup()
+        soup = self._brew_soup()
 
         years = [ li.find('a') for li in soup.findAll('li') if '/%s/%s' % (self.make,self.model) in li.find('a')['href'] ]
         years = [ year.text.strip(' \n\t') for year in years ]
@@ -77,14 +68,14 @@ class CarParser():
 
         return result
     
-    def scrape_model(self):
+    def _scrape_model(self):
         """
         When make and year are given but not model
         Result will be a list of valid models
         """
         result = None
         head = requests.head(self.URL)
-        soup = self.brew_soup()
+        soup = self._brew_soup()
 
         models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s/%s' % (self.year,self.make) in li.find('a')['href'] ]
         models = [ model.text.strip(' \n\t') for model in models ]
@@ -97,14 +88,14 @@ class CarParser():
 
         return result
     
-    def scrape_model_year(self):
+    def _scrape_model_year(self):
         """
         When make is given but neither make nor model
         Result will be a list of valid years and models
         """
         result = None
         head = requests.head(self.URL)
-        soup = self.brew_soup()
+        soup = self._brew_soup()
 
         years = [ li.find('a') for li in soup.findAll('li') if ((li.find('a').text.isnumeric()) and not '/cars/%s' % (self.make) in li.find('a')['href']) ]
         models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s' % (self.make) in li.find('a')['href'] ]
@@ -119,7 +110,7 @@ class CarParser():
 
         return result
     
-    def scrape_full(self):
+    def _scrape_full(self):
         """
         Called when year/make/model are all given
         Result will be keys and values of scraped fields
@@ -127,7 +118,7 @@ class CarParser():
         result = None
         keys = []
         values = []
-        soup = self.brew_soup()
+        soup = self._brew_soup()
 
         if soup.find('div', class_="main-car-details"):
             blob = soup.find('div', class_="main-car-details")
@@ -157,6 +148,15 @@ class CarParser():
             logger.error("Bad URL: %s" % (self.URL))
 
         return result    
+
+    def _brew_soup(self):
+        head = requests.head(self.URL)
+        if head.ok:
+            get = requests.get(self.URL) 
+            soup = BeautifulSoup(get.content, "html.parser")
+        else:
+            logger.error("HTTP %d: %s" % (head.status_code, URL))
+        return soup
 
 if __name__ == '__main__':
     cli = argparse.ArgumentParser(description='Scrape some car data')
