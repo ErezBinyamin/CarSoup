@@ -37,25 +37,28 @@ class CarParser():
         result = None
         if self.model and self.year:
             self.URL += '/{year}/{make}/{model}'.format(year=self.year, make=self.make, model=self.model)
-            result = self._scrape_full()
+            soup = self._brew_soup()
+            result = self._scrape_full(soup)
         elif self.model:
             self.URL += '/{make}/{model}'.format(make=self.make, model=self.model)
-            result = self._scrape_year()
+            soup = self._brew_soup()
+            result = self._scrape_year(soup)
         elif self.year:
             self.URL += '/{year}/{make}'.format(year=self.year, make=self.make)
-            result = self._scrape_model()
+            soup = self._brew_soup()
+            result = self._scrape_model(soup)
         else:
             self.URL += '/{make}'.format(make=self.make)
-            result = self._scrape_model_year()
+            soup = self._brew_soup()
+            result = self._scrape_model_year(soup)
         return result
 
-    def _scrape_year(self):
+    def _scrape_year(self, soup):
         """
         When make and model are given but not year.
         Result will be a list of valid years
         """
         result = None
-        soup = self._brew_soup()
 
         # <li> <a href="/make/model"> YEAR
         aTags = [ li.find('a') for li in soup.findAll('li') ]
@@ -70,14 +73,12 @@ class CarParser():
 
         return result
     
-    def _scrape_model(self):
+    def _scrape_model(self, soup):
         """
         When make and year are given but not model
         Result will be a list of valid models
         """
         result = None
-        head = requests.head(self.URL)
-        soup = self._brew_soup()
 
         # <li> <a href="/cars/year/make"> MODEL 
         aTags = [ li.find('a') for li in soup.findAll('li') ]
@@ -92,14 +93,12 @@ class CarParser():
 
         return result
     
-    def _scrape_model_year(self):
+    def _scrape_model_year(self, soup):
         """
         When make is given but neither make nor model
         Result will be a list of valid years and models
         """
         result = None
-        head = requests.head(self.URL)
-        soup = self._brew_soup()
 
         aTags = [ li.find('a') for li in soup.findAll('li') ]
         # <li> <a href!="/cars/make"> YEAR
@@ -119,7 +118,7 @@ class CarParser():
 
         return result
     
-    def _scrape_full(self):
+    def _scrape_full(self, soup):
         """
         Called when year/make/model are all given
         Result will be keys and values of scraped fields
@@ -127,7 +126,6 @@ class CarParser():
         result = None
         keys = []
         values = []
-        soup = self._brew_soup()
 
         # Get price and mileage
         if soup.find('div', class_="main-car-details"):
