@@ -57,6 +57,7 @@ class CarParser():
         result = None
         soup = self._brew_soup()
 
+        # <li> <a href="/make/model"> YEAR 
         years = [ li.find('a') for li in soup.findAll('li') if '/%s/%s' % (self.make,self.model) in li.find('a')['href'] ]
         years = [ year.text.strip(' \n\t') for year in years ]
         if len(years) == 0:
@@ -77,6 +78,7 @@ class CarParser():
         head = requests.head(self.URL)
         soup = self._brew_soup()
 
+        # <li> <a href="/cars/year/make"> MODEL 
         models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s/%s' % (self.year,self.make) in li.find('a')['href'] ]
         models = [ model.text.strip(' \n\t') for model in models ]
         if(len(models) == 0):
@@ -97,7 +99,9 @@ class CarParser():
         head = requests.head(self.URL)
         soup = self._brew_soup()
 
+        # <li> <a href!="/cars/make"> YEAR 
         years = [ li.find('a') for li in soup.findAll('li') if ((li.find('a').text.isnumeric()) and not '/cars/%s' % (self.make) in li.find('a')['href']) ]
+        # <li> <a href="/cars/make"> MODEL 
         models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s' % (self.make) in li.find('a')['href'] ]
         years = [ year.text.strip(' \n\t') for year in years ]
         models = [ model.text.strip(' \n\t') for model in models ]
@@ -123,19 +127,23 @@ class CarParser():
         if soup.find('div', class_="main-car-details"):
             blob = soup.find('div', class_="main-car-details")
             if blob.find('span'):
+                # <div class="main-car-details"> <span> PRICE 
                 price = blob.find('span').text.strip()
                 keys.append('price')
                 values.append(price)
                 if blob.find('span').next_sibling.next_sibling:
+                    # <div class="main-car-details"> <span> TXT ...  MILEAGE
                     mileage = blob.find('span').next_sibling.next_sibling.strip()
                     keys.append('mileage')
                     values.append(mileage)
             elif blob.text:
+                # <div class="main-car-details"> MILEAGE
                 mileage = blob.text.strip()
                 keys.append('mileage')
                 values.append(mileage)
 
         if soup.find('div', class_="car-details"):
+            # <div class="car-details"> <div class="pure-u-1 pure-u-md-1-2">
             blob = soup.find('div', class_="car-details").findAll('div', class_="pure-u-1 pure-u-md-1-2")
             keys.extend([ d.findNext('h4').text.strip(' \r\n\t') for d in blob ])
             values.extend([ d.findNext('h4').next_sibling.strip(' \r\n\t') for d in blob ])
