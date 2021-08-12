@@ -55,8 +55,10 @@ class CarParser():
 
     def _scrape_year(self, soup):
         """
-        When make and model are given but not year.
-        Result will be a list of valid years
+        Scrape years when make and model are given
+        Search pattern = <li> <a href="/make/model"> YEAR
+        @param soup
+        @return table of years
         """
         result = None
 
@@ -75,8 +77,10 @@ class CarParser():
     
     def _scrape_model(self, soup):
         """
-        When make and year are given but not model
-        Result will be a list of valid models
+        Scrape models when make and year are given
+        Search pattern = <li> <a href="/cars/year/make"> MODEL 
+        @param soup
+        @return table of models
         """
         result = None
 
@@ -95,8 +99,11 @@ class CarParser():
     
     def _scrape_model_year(self, soup):
         """
-        When make is given but neither make nor model
-        Result will be a list of valid years and models
+        Scrape model and year when only make is given
+        Search pattern = <li> <a href!="/cars/make"> YEAR 
+        Search pattern = <li> <a href="/cars/make"> MODEL
+        @param soup
+        @return table of models/years
         """
         result = None
 
@@ -120,8 +127,13 @@ class CarParser():
     
     def _scrape_full(self, soup):
         """
-        Called when year/make/model are all given
-        Result will be keys and values of scraped fields
+        The Real Deal
+        Search pattern = <div class="main-car-details"> <span> PRICE
+        Search pattern = <div class="main-car-details"> <div class="main-car-details"> <span> TXT ...  MILEAGE
+        Search pattern = <div class="main-car-details"> MILEAGE
+        Search pattern = <div class="car-details"> <div class="pure-u-1 pure-u-md-1-2"> <h4> KEY </h4> VALUE 
+        @param soup
+        @return table of models/years
         """
         result = None
         keys = []
