@@ -27,6 +27,15 @@ class CarParser():
         self.make  = make
         self.model = model
 
+    def brew_soup(self):
+        head = requests.head(self.URL)
+        if head.ok:
+            get = requests.get(self.URL) 
+            soup = BeautifulSoup(get.content, "html.parser")
+        else:
+            logger.error("HTTP %d: %s" % (head.status_code, URL))
+        return soup
+
     def scrape(self):
         """
         Based on supplied year/model/make
@@ -55,21 +64,17 @@ class CarParser():
         Result will be a list of valid years
         """
         result = None
-        head = requests.head(self.URL)
-        if head.ok:
-            get = requests.get(self.URL) 
-            soup = BeautifulSoup(get.content, "html.parser")
+        soup = self.brew_soup()
+
+        years = [ li.find('a') for li in soup.findAll('li') if '/%s/%s' % (self.make,self.model) in li.find('a')['href'] ]
+        years = [ year.text.strip(' \n\t') for year in years ]
+        if len(years) == 0:
+            logger.error("No such %s model: %s" % (self.make, self.model))
     
-            years = [ li.find('a') for li in soup.findAll('li') if '/%s/%s' % (self.make,self.model) in li.find('a')['href'] ]
-            years = [ year.text.strip(' \n\t') for year in years ]
-            if len(years) == 0:
-                logger.error("No such %s model: %s" % (self.make, self.model))
-    
-            headers = [ 'year' ]
-            table = [ i for i in itertools.zip_longest(years) ]
-            result = tabulate(table, headers=headers)
-        else:
-            logger.error("HTTP %d: %s" % (head.status_code, URL))
+        headers = [ 'year' ]
+        table = [ i for i in itertools.zip_longest(years) ]
+        result = tabulate(table, headers=headers)
+
         return result
     
     def scrape_model(self):
@@ -79,20 +84,17 @@ class CarParser():
         """
         result = None
         head = requests.head(self.URL)
-        if head.ok:
-            get = requests.get(self.URL) 
-            soup = BeautifulSoup(get.content, "html.parser")
+        soup = self.brew_soup()
+
+        models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s/%s' % (self.year,self.make) in li.find('a')['href'] ]
+        models = [ model.text.strip(' \n\t') for model in models ]
+        if(len(models) == 0):
+            logger.error("No %s made in year: %s" % (self.make, self.year))
     
-            models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s/%s' % (self.year,self.make) in li.find('a')['href'] ]
-            models = [ model.text.strip(' \n\t') for model in models ]
-            if(len(models) == 0):
-                logger.error("No %s made in year: %s" % (self.make, self.year))
-    
-            headers = [ 'model' ]
-            table = [ i for i in itertools.zip_longest(models) ]
-            result = tabulate(table, headers=headers)
-        else:
-            logger.error("HTTP %d: %s" % (head.status_code, self.URL))        
+        headers = [ 'model' ]
+        table = [ i for i in itertools.zip_longest(models) ]
+        result = tabulate(table, headers=headers)
+
         return result
     
     def scrape_model_year(self):
@@ -102,22 +104,19 @@ class CarParser():
         """
         result = None
         head = requests.head(self.URL)
-        if head.ok:
-            get = requests.get(self.URL) 
-            soup = BeautifulSoup(get.content, "html.parser")
+        soup = self.brew_soup()
+
+        years = [ li.find('a') for li in soup.findAll('li') if ((li.find('a').text.isnumeric()) and not '/cars/%s' % (self.make) in li.find('a')['href']) ]
+        models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s' % (self.make) in li.find('a')['href'] ]
+        years = [ year.text.strip(' \n\t') for year in years ]
+        models = [ model.text.strip(' \n\t') for model in models ]
+        if (len(years)==0) or (len(models)==0):
+            logger.error("No such car make: %s" % (self.make))
     
-            years = [ li.find('a') for li in soup.findAll('li') if ((li.find('a').text.isnumeric()) and not '/cars/%s' % (self.make) in li.find('a')['href']) ]
-            models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s' % (self.make) in li.find('a')['href'] ]
-            years = [ year.text.strip(' \n\t') for year in years ]
-            models = [ model.text.strip(' \n\t') for model in models ]
-            if (len(years)==0) or (len(models)==0):
-                logger.error("No such car make: %s" % (self.make))
-    
-            headers = [ 'year', 'model' ]
-            table = [ i for i in itertools.zip_longest(years, models) ]
-            result = tabulate(table, headers=headers)
-        else:
-            logger.error("HTTP %d: %s" % (head.status_code, self.URL))
+        headers = [ 'year', 'model' ]
+        table = [ i for i in itertools.zip_longest(years, models) ]
+        result = tabulate(table, headers=headers)
+
         return result
     
     def scrape_full(self):
@@ -128,40 +127,35 @@ class CarParser():
         result = None
         keys = []
         values = []
-    
-        head = requests.head(self.URL)
-        if head.ok:
-            get = requests.get(self.URL) 
-            soup = BeautifulSoup(get.content, "html.parser")
+        soup = self.brew_soup()
 
-            if soup.find('div', class_="main-car-details"):
-                blob = soup.find('div', class_="main-car-details")
-                if blob.find('span'):
-                    price = blob.find('span').text.strip()
-                    keys.append('price')
-                    values.append(price)
-                    if blob.find('span').next_sibling.next_sibling:
-                        mileage = blob.find('span').next_sibling.next_sibling.strip()
-                        keys.append('mileage')
-                        values.append(mileage)
-                elif blob.text:
-                    mileage = blob.text.strip()
+        if soup.find('div', class_="main-car-details"):
+            blob = soup.find('div', class_="main-car-details")
+            if blob.find('span'):
+                price = blob.find('span').text.strip()
+                keys.append('price')
+                values.append(price)
+                if blob.find('span').next_sibling.next_sibling:
+                    mileage = blob.find('span').next_sibling.next_sibling.strip()
                     keys.append('mileage')
                     values.append(mileage)
+            elif blob.text:
+                mileage = blob.text.strip()
+                keys.append('mileage')
+                values.append(mileage)
 
-            if soup.find('div', class_="car-details"):
-                blob = soup.find('div', class_="car-details").findAll('div', class_="pure-u-1 pure-u-md-1-2")
-                keys.extend([ d.findNext('h4').text.strip(' \r\n\t') for d in blob ])
-                values.extend([ d.findNext('h4').next_sibling.strip(' \r\n\t') for d in blob ])
+        if soup.find('div', class_="car-details"):
+            blob = soup.find('div', class_="car-details").findAll('div', class_="pure-u-1 pure-u-md-1-2")
+            keys.extend([ d.findNext('h4').text.strip(' \r\n\t') for d in blob ])
+            values.extend([ d.findNext('h4').next_sibling.strip(' \r\n\t') for d in blob ])
 
-            if len(values) > 0:
-                headers = [ 'key', 'value']
-                table = [ i for i in itertools.zip_longest(keys, values) ]
-                result = tabulate(table, headers=headers)
-            else:
-                logger.error("Bad URL: %s" % (self.URL))
+        if len(values) > 0:
+            headers = [ 'key', 'value']
+            table = [ i for i in itertools.zip_longest(keys, values) ]
+            result = tabulate(table, headers=headers)
         else:
-            logger.error("HTTP %d: %s" % (head.status_code, self.URL))
+            logger.error("Bad URL: %s" % (self.URL))
+
         return result    
 
 if __name__ == '__main__':
