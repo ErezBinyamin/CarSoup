@@ -57,11 +57,12 @@ class CarParser():
         result = None
         soup = self._brew_soup()
 
-        # <li> <a href="/make/model"> YEAR 
-        years = [ li.find('a') for li in soup.findAll('li') if '/%s/%s' % (self.make,self.model) in li.find('a')['href'] ]
-        years = [ year.text.strip(' \n\t') for year in years ]
+        # <li> <a href="/make/model"> YEAR
+        aTags = [ li.find('a') for li in soup.findAll('li') ]
+        pattern = '/{make}/{model}'.format(make=self.make, model=self.model)
+        years = [ a.text.strip(' \r\n\t') for a in aTags if pattern in a['href'] ]
         if len(years) == 0:
-            logger.error("No such %s model: %s" % (self.make, self.model))
+            logger.error("No years found for {make} {model}: {url}".format(make=self.make, model=self.model, url=self.URL) )
     
         headers = [ 'year' ]
         table = [ i for i in itertools.zip_longest(years) ]
@@ -79,10 +80,11 @@ class CarParser():
         soup = self._brew_soup()
 
         # <li> <a href="/cars/year/make"> MODEL 
-        models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s/%s' % (self.year,self.make) in li.find('a')['href'] ]
-        models = [ model.text.strip(' \n\t') for model in models ]
+        aTags = [ li.find('a') for li in soup.findAll('li') ]
+        pattern = '/cars/{year}/{make}'.format(year=self.year, make=self.make) 
+        models = [ a.text.strip(' \r\n\t') for a in aTags if pattern in a['href'] ]
         if(len(models) == 0):
-            logger.error("No %s made in year: %s" % (self.make, self.year))
+            logger.error("No models found for {make} {year}: {url}".format(make=self.make, year=self.year, url=self.URL) )
     
         headers = [ 'model' ]
         table = [ i for i in itertools.zip_longest(models) ]
@@ -99,14 +101,17 @@ class CarParser():
         head = requests.head(self.URL)
         soup = self._brew_soup()
 
-        # <li> <a href!="/cars/make"> YEAR 
-        years = [ li.find('a') for li in soup.findAll('li') if ((li.find('a').text.isnumeric()) and not '/cars/%s' % (self.make) in li.find('a')['href']) ]
+        aTags = [ li.find('a') for li in soup.findAll('li') ]
+        # <li> <a href!="/cars/make"> YEAR
+        pattern = '/cars/{make}'.format(make=self.make)
+        years = [ a.text.strip(' \r\n\t') for a in aTags if (a.text.isnumeric()) and not pattern in a['href']) ]
         # <li> <a href="/cars/make"> MODEL 
-        models = [ li.find('a') for li in soup.findAll('li') if '/cars/%s' % (self.make) in li.find('a')['href'] ]
-        years = [ year.text.strip(' \n\t') for year in years ]
-        models = [ model.text.strip(' \n\t') for model in models ]
-        if (len(years)==0) or (len(models)==0):
-            logger.error("No such car make: %s" % (self.make))
+        pattern = '/cars/{make}'.format(make=self.make)
+        models = [ a.text.strip(' \r\n\t') for a in aTags if pattern in a['href'] ]
+        if (len(years)==0):
+            logger.error("No years found for {make}: {url}".format(make=self.make, url=self.URL) )
+        if (len(models)==0):
+            logger.error("No models found for {make}: {url}".format(make=self.make, url=self.URL) )
     
         headers = [ 'year', 'model' ]
         table = [ i for i in itertools.zip_longest(years, models) ]
@@ -124,6 +129,7 @@ class CarParser():
         values = []
         soup = self._brew_soup()
 
+        # Get price and mileage
         if soup.find('div', class_="main-car-details"):
             blob = soup.find('div', class_="main-car-details")
             if blob.find('span'):
@@ -143,7 +149,7 @@ class CarParser():
                 values.append(mileage)
 
         if soup.find('div', class_="car-details"):
-            # <div class="car-details"> <div class="pure-u-1 pure-u-md-1-2">
+            # <div class="car-details"> <div class="pure-u-1 pure-u-md-1-2"> <h4> KEY </h4> VALUE
             blob = soup.find('div', class_="car-details").findAll('div', class_="pure-u-1 pure-u-md-1-2")
             keys.extend([ d.findNext('h4').text.strip(' \r\n\t') for d in blob ])
             values.extend([ d.findNext('h4').next_sibling.strip(' \r\n\t') for d in blob ])
@@ -153,7 +159,7 @@ class CarParser():
             table = [ i for i in itertools.zip_longest(keys, values) ]
             result = tabulate(table, headers=headers)
         else:
-            logger.error("Bad URL: %s" % (self.URL))
+            logger.error("Bad URL: {url}".format(url=self.URL))
 
         return result    
 
@@ -163,7 +169,7 @@ class CarParser():
             get = requests.get(self.URL) 
             soup = BeautifulSoup(get.content, "html.parser")
         else:
-            logger.error("HTTP %d: %s" % (head.status_code, URL))
+            logger.error("HTTP {code}: {url}".format(code=head.status_code, url=URL))
         return soup
 
 if __name__ == '__main__':
