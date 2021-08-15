@@ -12,7 +12,8 @@ CarSoup() {
 	if [ $DFILE_TIME -gt $IMG_TIME ] 
 	then
 		docker build -t ${IMAGE_NAME} .
-	elif [ $SRC_TIME -gt $IMG_TIME ] && git status -s | grep -iqm1 -e " M" -e " D" -e "??" 
+	elif [ $SRC_TIME -gt $IMG_TIME ] && git status -s | grep -iqm1 ${SRC} 
+	then
 		docker build -t ${IMAGE_NAME} .
 	fi
 
