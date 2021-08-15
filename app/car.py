@@ -110,7 +110,7 @@ class CarParser():
         aTags = [ li.find('a') for li in soup.findAll('li') ]
         # <li> <a href!="/cars/make"> YEAR
         pattern = '/cars/{make}'.format(make=self.make)
-        years = [ a.text.strip(' \r\n\t') for a in aTags if (a.text.isnumeric()) and not pattern in a['href']) ]
+        years = [ a.text.strip(' \r\n\t') for a in aTags if (a.text.isnumeric()) and not pattern in a['href'] ]
         # <li> <a href="/cars/make"> MODEL 
         pattern = '/cars/{make}'.format(make=self.make)
         models = [ a.text.strip(' \r\n\t') for a in aTags if pattern in a['href'] ]

@@ -1,4 +1,5 @@
 FROM python:latest
+MAINTAINER Erez Binyamin
 
 COPY ./app /app
 WORKDIR /app
