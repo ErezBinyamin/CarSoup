@@ -2,7 +2,7 @@
 Research stats on cars from the command line!
 
 # Usage
-App actually runs out of a docker container, so use run.sh to run the application "car.py"
+App runs out of a docker container, so use run.sh to run the application "car.py"
 ```
 # ./run.sh --help
 
