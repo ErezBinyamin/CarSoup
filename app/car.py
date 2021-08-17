@@ -179,7 +179,7 @@ class CarParser():
             get = requests.get(self.URL) 
             soup = BeautifulSoup(get.content, "html.parser")
         else:
-            logger.error("HTTP {code}: {url}".format(code=head.status_code, url=URL))
+            raise RuntimeError("HTTP {code}: {url}".format(code=head.status_code, url=self.URL))
         return soup
 
 if __name__ == '__main__':
