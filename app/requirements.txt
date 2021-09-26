@@ -1,4 +1,5 @@
 argparse
-bs4
 requests
+bs4
+Scrapy
 tabulate
