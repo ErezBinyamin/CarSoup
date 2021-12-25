@@ -2,9 +2,13 @@
 
 CarSoup() {
 	local IMAGE_NAME=carsoup
-	make &>/dev/null \
-		&& docker run -it ${IMAGE_NAME} python car.py $@ \
-		|| make
+
+	if make --question
+	then
+		docker run -it ${IMAGE_NAME} python car.py $@
+	else
+		make && docker run -it ${IMAGE_NAME} python car.py $@
+	fi
 }
 
 CarSoup $@
